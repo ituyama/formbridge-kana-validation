@@ -8,8 +8,8 @@
     "koza_meigi"
   ];
 
-  const ERROR_MESSAGE = "全角カタカナで入力してください。";
-  const KATAKANA_PATTERN = /^[ァ-ヺー　]+$/u;
+  const ERROR_MESSAGE = "全角カタカナで入力してください。（全角スペース・.・()可）";
+  const KATAKANA_PATTERN = /^[ァ-ヺー　.()]+$/u;
 
   const fieldValue = (record, fieldCode) => {
     const field = record && record[fieldCode];
