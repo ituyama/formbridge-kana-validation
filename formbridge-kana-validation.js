@@ -1,15 +1,21 @@
 (() => {
   "use strict";
 
-  const FIELD_CODES = [
+  const FULLWIDTH_FIELDS = [
     "hojin_mei_kana",
     "daihyo_shimei_kana",
-    "tanto_shimei_kana",
-    "koza_meigi"
+    "tanto_shimei_kana"
   ];
 
-  const ERROR_MESSAGE = "全角カタカナで入力してください。（全角スペース・.・()可）";
-  const KATAKANA_PATTERN = /^[ァ-ヺー　.()]+$/u;
+  const ACCOUNT_FIELDS = ["koza_meigi"];
+
+  const FULLWIDTH_MESSAGE =
+    "全角カタカナで入力してください。（全角スペース・.・()可）";
+  const ACCOUNT_MESSAGE =
+    "全角または半角カタカナで入力してください。（全角スペース・.・()可）";
+
+  const FULLWIDTH_PATTERN = /^[ァ-ヺー　.()]+$/u;
+  const ACCOUNT_PATTERN = /^[ァ-ヺー　.()｡-ﾟ ]+$/u;
 
   const fieldValue = (record, fieldCode) => {
     const field = record && record[fieldCode];
@@ -20,19 +26,35 @@
     return String(field);
   };
 
-  const validateField = (fieldCode, value) => {
-    const text = String(value ?? "");
-    const isValid = text === "" || KATAKANA_PATTERN.test(text);
-    formBridge.fn.setFieldValueError(
+  const rules = [];
+  FULLWIDTH_FIELDS.forEach((fieldCode) => {
+    rules.push({
       fieldCode,
-      isValid ? null : ERROR_MESSAGE
+      pattern: FULLWIDTH_PATTERN,
+      message: FULLWIDTH_MESSAGE
+    });
+  });
+  ACCOUNT_FIELDS.forEach((fieldCode) => {
+    rules.push({
+      fieldCode,
+      pattern: ACCOUNT_PATTERN,
+      message: ACCOUNT_MESSAGE
+    });
+  });
+
+  const validateField = (rule, value) => {
+    const text = String(value ?? "");
+    const isValid = text === "" || rule.pattern.test(text);
+    formBridge.fn.setFieldValueError(
+      rule.fieldCode,
+      isValid ? null : rule.message
     );
     return isValid;
   };
 
-  FIELD_CODES.forEach((fieldCode) => {
-    formBridge.events.on(`form.field.change.${fieldCode}`, (context) => {
-      validateField(fieldCode, context.value);
+  rules.forEach((rule) => {
+    formBridge.events.on(`form.field.change.${rule.fieldCode}`, (context) => {
+      validateField(rule, context.value);
     });
   });
 
@@ -40,9 +62,9 @@
     const record = formBridge.fn.getRecord();
     let isAllValid = true;
 
-    FIELD_CODES.forEach((fieldCode) => {
-      if (!(record && record[fieldCode])) return;
-      if (!validateField(fieldCode, fieldValue(record, fieldCode))) {
+    rules.forEach((rule) => {
+      if (!(record && record[rule.fieldCode])) return;
+      if (!validateField(rule, fieldValue(record, rule.fieldCode))) {
         isAllValid = false;
       }
     });
