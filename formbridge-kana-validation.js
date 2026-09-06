@@ -12,13 +12,11 @@
   const FULLWIDTH_MESSAGE =
     "全角カタカナで入力してください。（全角スペース・.・()可）";
   const ACCOUNT_MESSAGE =
-    "全角または半角カタカナで入力してください。（全角スペース・.・()可）";
-  const SMALL_KANA_MESSAGE =
-    "小さいカナ（ァィゥェォッャュョなど）は使えません。大きいカナで入力してください。";
+    "半角カタカナ（大文字）と半角の () . のみ入力してください。";
 
   const FULLWIDTH_PATTERN = /^[ァ-ヺー　.()]+$/u;
-  const ACCOUNT_PATTERN = /^[ァ-ヺー　.()｡-ﾟ ]+$/u;
-  const SMALL_KANA_PATTERN = /[ァィゥェォッャュョヮヵヶｧｨｩｪｫｯｬｭｮ]/u;
+  // ｦ・ｱ-ﾝ・長音・濁点半濁点。ｧｨｩｪｫｬｭｮｯ は含めない。
+  const ACCOUNT_PATTERN = /^[ｦｰｱ-ﾝﾞﾟ.()]+$/u;
 
   const fieldValue = (record, fieldCode) => {
     const field = record && record[fieldCode];
@@ -41,23 +39,18 @@
     rules.push({
       fieldCode,
       pattern: ACCOUNT_PATTERN,
-      message: ACCOUNT_MESSAGE,
-      rejectSmall: true
+      message: ACCOUNT_MESSAGE
     });
   });
 
   const validateField = (rule, value) => {
     const text = String(value ?? "");
-    let message = null;
-    if (text !== "") {
-      if (rule.rejectSmall && SMALL_KANA_PATTERN.test(text)) {
-        message = SMALL_KANA_MESSAGE;
-      } else if (!rule.pattern.test(text)) {
-        message = rule.message;
-      }
-    }
-    formBridge.fn.setFieldValueError(rule.fieldCode, message);
-    return message == null;
+    const isValid = text === "" || rule.pattern.test(text);
+    formBridge.fn.setFieldValueError(
+      rule.fieldCode,
+      isValid ? null : rule.message
+    );
+    return isValid;
   };
 
   rules.forEach((rule) => {
