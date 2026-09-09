@@ -10,11 +10,11 @@
   const ACCOUNT_FIELDS = ["koza_meigi"];
 
   const FULLWIDTH_MESSAGE =
-    "全角カタカナとスペースのみ入力してください。";
+    "全角カタカナと全角スペースのみ入力してください。";
   const ACCOUNT_MESSAGE =
     "半角カタカナ（大文字）と半角の () . のみ入力してください。";
 
-  const FULLWIDTH_PATTERN = /^[ァ-ヺー　 ]+$/u;
+  const FULLWIDTH_PATTERN = /^[ァ-ヺー　]+$/u;
   // ｦ・ｱ-ﾝ・長音・濁点半濁点。ｧｨｩｪｫｬｭｮｯ は含めない。
   const ACCOUNT_PATTERN = /^[ｦｰｱ-ﾝﾞﾟ.()]+$/u;
 
