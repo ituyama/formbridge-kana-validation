@@ -43,26 +43,32 @@
     });
   });
 
-  const fieldOnPage = (fieldCode) => {
+  const lastError = {};
+  let writing = false;
+
+  const fieldExists = (fieldCode) => {
     try {
-      const escaped = CSS.escape(fieldCode);
-      const el =
+      return !!(
         document.getElementById(fieldCode) ||
-        document.querySelector(`[name="${escaped}"]`);
-      if (!el) return false;
-      const style = window.getComputedStyle(el);
-      if (style.display === "none" || style.visibility === "hidden") return false;
-      return el.getClientRects().length > 0;
+        document.querySelector('[name="' + CSS.escape(fieldCode) + '"]')
+      );
     } catch (e) {
       return false;
     }
   };
 
   const setError = (fieldCode, message) => {
-    if (!fieldOnPage(fieldCode)) return;
+    const next = message || null;
+    if (lastError[fieldCode] === next) return;
+    if (!fieldExists(fieldCode)) return;
+    lastError[fieldCode] = next;
+    writing = true;
     try {
-      formBridge.fn.setFieldValueError(fieldCode, message);
-    } catch (e) {}
+      formBridge.fn.setFieldValueError(fieldCode, next);
+    } catch (e) {
+    } finally {
+      writing = false;
+    }
   };
 
   const validateField = (rule, value) => {
@@ -74,17 +80,19 @@
 
   rules.forEach((rule) => {
     formBridge.events.on(`form.field.change.${rule.fieldCode}`, (context) => {
+      if (writing) return;
       validateField(rule, context.value);
     });
   });
 
   const validateAll = (context, currentPageOnly) => {
+    if (writing) return;
     const record = formBridge.fn.getRecord();
     let isAllValid = true;
 
     rules.forEach((rule) => {
       if (!(record && record[rule.fieldCode])) return;
-      if (currentPageOnly && !fieldOnPage(rule.fieldCode)) return;
+      if (currentPageOnly && !fieldExists(rule.fieldCode)) return;
       if (!validateField(rule, fieldValue(record, rule.fieldCode))) {
         isAllValid = false;
       }
