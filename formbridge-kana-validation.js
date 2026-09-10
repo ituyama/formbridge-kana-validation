@@ -43,13 +43,32 @@
     });
   });
 
+  const fieldOnPage = (fieldCode) => {
+    try {
+      const escaped = CSS.escape(fieldCode);
+      const el =
+        document.getElementById(fieldCode) ||
+        document.querySelector(`[name="${escaped}"]`);
+      if (!el) return false;
+      const style = window.getComputedStyle(el);
+      if (style.display === "none" || style.visibility === "hidden") return false;
+      return el.getClientRects().length > 0;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  const setError = (fieldCode, message) => {
+    if (!fieldOnPage(fieldCode)) return;
+    try {
+      formBridge.fn.setFieldValueError(fieldCode, message);
+    } catch (e) {}
+  };
+
   const validateField = (rule, value) => {
     const text = String(value ?? "");
     const isValid = text === "" || rule.pattern.test(text);
-    formBridge.fn.setFieldValueError(
-      rule.fieldCode,
-      isValid ? null : rule.message
-    );
+    setError(rule.fieldCode, isValid ? null : rule.message);
     return isValid;
   };
 
@@ -59,12 +78,13 @@
     });
   });
 
-  const validateAll = (context) => {
+  const validateAll = (context, currentPageOnly) => {
     const record = formBridge.fn.getRecord();
     let isAllValid = true;
 
     rules.forEach((rule) => {
       if (!(record && record[rule.fieldCode])) return;
+      if (currentPageOnly && !fieldOnPage(rule.fieldCode)) return;
       if (!validateField(rule, fieldValue(record, rule.fieldCode))) {
         isAllValid = false;
       }
@@ -75,10 +95,10 @@
     }
   };
 
-  formBridge.events.on("form.confirm", validateAll);
-  formBridge.events.on("form.submit", validateAll);
+  formBridge.events.on("form.confirm", (context) => validateAll(context, false));
+  formBridge.events.on("form.submit", (context) => validateAll(context, false));
   formBridge.events.on("form.step.moving", (context) => {
     if (context.nextStep < context.currentStep) return;
-    validateAll(context);
+    validateAll(context, true);
   });
 })();
