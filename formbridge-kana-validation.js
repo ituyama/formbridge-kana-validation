@@ -8,11 +8,6 @@
 
   const HOJIN_KANA_FIELDS = ["hojin_mei_kana"];
   const NO_HALF_SPACE_FIELDS = ["daihyo_shimei", "tanto_shimei"];
-  const ACCOUNT_FIELDS = ["koza_meigi"];
-
-  const ACCOUNT_MESSAGE =
-    "半角カタカナ（大文字）と半角の () . のみ入力してください。";
-  const ACCOUNT_PATTERN = /^[ｦｰｱ-ﾝﾞﾟ.()]+$/u;
   const FULL_KANA_CHAR = /[ァ-ヺー]/u;
   const FULL_KANA_OR_SPACE = /[ァ-ヺー　]/u;
 
@@ -89,15 +84,6 @@
   const sanitizeNoHalfSpace = (text) =>
     String(text ?? "").replace(/\u0020/g, "");
 
-  const fieldValue = (record, fieldCode) => {
-    const field = record && record[fieldCode];
-    if (field == null) return "";
-    if (typeof field === "object" && "value" in field) {
-      return field.value == null ? "" : String(field.value);
-    }
-    return String(field);
-  };
-
   const fieldEl = (fieldCode) => {
     try {
       return (
@@ -119,16 +105,8 @@
   NO_HALF_SPACE_FIELDS.forEach((fieldCode) => {
     rules.push({ fieldCode, sanitize: sanitizeNoHalfSpace });
   });
-  ACCOUNT_FIELDS.forEach((fieldCode) => {
-    rules.push({
-      fieldCode,
-      test: (text) => ACCOUNT_PATTERN.test(text),
-      message: ACCOUNT_MESSAGE
-    });
-  });
 
   const ruleByCode = new Map(rules.map((rule) => [rule.fieldCode, rule]));
-  const lastError = {};
   const composing = new Set();
   let writing = false;
 
@@ -176,27 +154,9 @@
     return next;
   };
 
-  const setError = (fieldCode, message) => {
-    const next = message || null;
-    if (lastError[fieldCode] === next) return;
-    if (!fieldEl(fieldCode)) return;
-    lastError[fieldCode] = next;
-    writing = true;
-    try {
-      formBridge.fn.setFieldValueError(fieldCode, next);
-    } catch (e) {
-    } finally {
-      writing = false;
-    }
-  };
-
   const runRule = (rule, value) => {
-    if (writing || composing.has(rule.fieldCode)) return true;
-    const next = sanitizeField(rule, value);
-    if (!rule.test) return true;
-    const isValid = next === "" || rule.test(next);
-    setError(rule.fieldCode, isValid ? null : rule.message);
-    return isValid;
+    if (writing || composing.has(rule.fieldCode)) return;
+    sanitizeField(rule, value);
   };
 
   const blockSpaceCodes = new Set(HOJIN_KANA_FIELDS);
@@ -263,30 +223,5 @@
     formBridge.events.on(`form.field.change.${rule.fieldCode}`, (context) => {
       runRule(rule, context.value);
     });
-  });
-
-  const validateAll = (context, currentPageOnly) => {
-    if (writing) return;
-    const record = formBridge.fn.getRecord();
-    let isAllValid = true;
-
-    rules.forEach((rule) => {
-      if (!(record && record[rule.fieldCode])) return;
-      if (currentPageOnly && !fieldEl(rule.fieldCode)) return;
-      if (!runRule(rule, fieldValue(record, rule.fieldCode))) {
-        isAllValid = false;
-      }
-    });
-
-    if (!isAllValid) {
-      context.preventDefault();
-    }
-  };
-
-  formBridge.events.on("form.confirm", (context) => validateAll(context, false));
-  formBridge.events.on("form.submit", (context) => validateAll(context, false));
-  formBridge.events.on("form.step.moving", (context) => {
-    if (context.nextStep < context.currentStep) return;
-    validateAll(context, true);
   });
 })();
