@@ -86,7 +86,8 @@
     keepChars(toFullwidthKatakana(text), FULL_KANA_CHAR);
   const sanitizeFullwidthKana = (text) =>
     keepChars(toFullwidthKatakana(text), FULL_KANA_OR_SPACE);
-  const sanitizeNoHalfSpace = (text) => String(text ?? "").replace(/ /g, "");
+  const sanitizeNoHalfSpace = (text) =>
+    String(text ?? "").replace(/\u0020/g, "");
 
   const fieldValue = (record, fieldCode) => {
     const field = record && record[fieldCode];
@@ -198,7 +199,7 @@
     return isValid;
   };
 
-  const blockSpaceCodes = new Set([...HOJIN_KANA_FIELDS, ...NO_HALF_SPACE_FIELDS]);
+  const blockSpaceCodes = new Set(HOJIN_KANA_FIELDS);
   document.addEventListener(
     "keydown",
     (ev) => {
