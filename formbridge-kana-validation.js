@@ -2,19 +2,24 @@
   "use strict";
 
   const FULLWIDTH_FIELDS = [
-    "hojin_mei_kana",
     "daihyo_shimei_kana",
     "tanto_shimei_kana"
   ];
 
+  const HOJIN_KANA_FIELDS = ["hojin_mei_kana"];
+  const NO_HALF_SPACE_FIELDS = ["daihyo_shimei", "tanto_shimei"];
   const ACCOUNT_FIELDS = ["koza_meigi"];
 
   const FULLWIDTH_MESSAGE =
     "全角カタカナと全角スペースのみ入力してください。";
+  const HOJIN_KANA_MESSAGE =
+    "全角カタカナのみ入力してください。スペースは使えません。";
+  const NO_HALF_SPACE_MESSAGE = "半角スペースは入力できません。";
   const ACCOUNT_MESSAGE =
     "半角カタカナ（大文字）と半角の () . のみ入力してください。";
 
   const FULLWIDTH_PATTERN = /^[ァ-ヺー　]+$/u;
+  const HOJIN_KANA_PATTERN = /^[ァ-ヺー]+$/u;
   // ｦ・ｱ-ﾝ・長音・濁点半濁点。ｧｨｩｪｫｬｭｮｯ は含めない。
   const ACCOUNT_PATTERN = /^[ｦｰｱ-ﾝﾞﾟ.()]+$/u;
 
@@ -31,14 +36,28 @@
   FULLWIDTH_FIELDS.forEach((fieldCode) => {
     rules.push({
       fieldCode,
-      pattern: FULLWIDTH_PATTERN,
+      test: (text) => FULLWIDTH_PATTERN.test(text),
       message: FULLWIDTH_MESSAGE
+    });
+  });
+  HOJIN_KANA_FIELDS.forEach((fieldCode) => {
+    rules.push({
+      fieldCode,
+      test: (text) => HOJIN_KANA_PATTERN.test(text),
+      message: HOJIN_KANA_MESSAGE
+    });
+  });
+  NO_HALF_SPACE_FIELDS.forEach((fieldCode) => {
+    rules.push({
+      fieldCode,
+      test: (text) => !/ /.test(text),
+      message: NO_HALF_SPACE_MESSAGE
     });
   });
   ACCOUNT_FIELDS.forEach((fieldCode) => {
     rules.push({
       fieldCode,
-      pattern: ACCOUNT_PATTERN,
+      test: (text) => ACCOUNT_PATTERN.test(text),
       message: ACCOUNT_MESSAGE
     });
   });
@@ -73,10 +92,23 @@
 
   const validateField = (rule, value) => {
     const text = String(value ?? "");
-    const isValid = text === "" || rule.pattern.test(text);
+    const isValid = text === "" || rule.test(text);
     setError(rule.fieldCode, isValid ? null : rule.message);
     return isValid;
   };
+
+  const blockSpaceCodes = new Set([...HOJIN_KANA_FIELDS, ...NO_HALF_SPACE_FIELDS]);
+  document.addEventListener(
+    "keydown",
+    (ev) => {
+      if (ev.key !== " " && ev.code !== "Space") return;
+      const target = ev.target;
+      if (!target) return;
+      const code = target.id || target.getAttribute("name");
+      if (blockSpaceCodes.has(code)) ev.preventDefault();
+    },
+    true
+  );
 
   rules.forEach((rule) => {
     formBridge.events.on(`form.field.change.${rule.fieldCode}`, (context) => {
