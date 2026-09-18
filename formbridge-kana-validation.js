@@ -10,12 +10,12 @@
   const ACCOUNT_FIELDS = ["koza_meigi"];
 
   const KANA_MESSAGE =
-    "全角カタカナのみ入力してください。スペースは使えません。";
+    "全角カタカナと全角スペースのみ入力してください。";
   const NO_HALF_SPACE_MESSAGE = "半角スペースは入力できません。";
   const ACCOUNT_MESSAGE =
     "半角カタカナ（大文字）と半角の () . のみ入力してください。";
 
-  const KANA_PATTERN = /^[ァ-ヺー]+$/u;
+  const KANA_PATTERN = /^[ァ-ヺー　]+$/u;
   // 変換JSが半角スペースを入れるので、スペースは通す。漢字などはエラー。
   const ACCOUNT_PATTERN = /^[ｦｰｱ-ﾝﾞﾟ.() ]+$/u;
 
